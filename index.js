@@ -132,10 +132,10 @@
 
     app.put('/accounts/:id', (req, res) => {
     const accountId = req.params.id;
-    const { account_type, status } = req.body;
+    const { account_type} = req.body;
     db.query(
-        'UPDATE account SET account_type = ?, status = ? WHERE user_id = ?',
-        [account_type, status, accountId],
+        'UPDATE account SET account_type = ? WHERE user_id = ?',
+        [account_type, accountId],
         (err, results) => {
         if (err) return res.status(500).json({ error: err });
         if (results.affectedRows === 0) return res.status(404).json({ msg: "Account not found" });
