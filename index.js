@@ -379,7 +379,7 @@
         service: 'gmail',
         auth: {
             user: 'gannaahmed572@gmail.com',
-            pass: 'qmek ltnz yadq fzvs'
+            pass: 'kpjz vdkq driq umnz'
         }
         });
     
@@ -388,7 +388,7 @@
             from: '"Bank App" <gannaahmed572@gmail.com>',
             to: to,
             subject: subject,
-            html: html
+            text: html
         }, (err, info) => {
             if (err) console.error(err);
             else console.log("Email sent:", info.response);
