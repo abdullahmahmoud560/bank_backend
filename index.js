@@ -145,7 +145,7 @@
     });
 
 
-    app.get('/accounts/:id/deactivate', (req, res) => {
+    app.post('/accounts/:id/deactivate', (req, res) => {
     const user_id = req.params.id;
     db.query('UPDATE account SET status = "deactivated" WHERE user_id = ?', [user_id], (err, results) => {
         if (err) return res.status(500).json({ error: err });
