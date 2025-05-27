@@ -130,7 +130,7 @@
     });
 
 
-    app.put('/accounts/:id', (req, res) => {
+    app.post('/accounts/:id', (req, res) => {
     const accountId = req.params.id;
     const { account_type} = req.body;
     db.query(
