@@ -236,7 +236,7 @@
                 if (err) return res.status(500).json({ error: err });
                 if (fromAccountResult.length === 0) return res.status(404).json({ msg: "Sender account not found" });
     
-                if (fromAccountResult[0].account_type !== 'checking') {
+                if (fromAccountResult[0].account_type !== 'savings') {
                     return res.status(400).json({ msg: "Sender account type not allowed for transfer" });
                 }
     
@@ -252,7 +252,7 @@
                         if (err) return res.status(500).json({ error: err });
                         if (toAccountResult.length === 0) return res.status(404).json({ msg: "Receiver account not found" });
     
-                        if (toAccountResult[0].account_type !== 'checking') {
+                        if (toAccountResult[0].account_type !== 'savings') {
                             return res.status(400).json({ msg: "Receiver account type not allowed for transfer" });
                         }
     
