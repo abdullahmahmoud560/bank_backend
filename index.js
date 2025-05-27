@@ -194,7 +194,7 @@
     });
 
 
-    app.post('/accounts/:id', (req, res) => {
+    app.post('/accounts/:id/delete', (req, res) => {
         const user_id = req.params.id;
       
         // نستخدم استعلام لحذف الحساب بالمعرف
