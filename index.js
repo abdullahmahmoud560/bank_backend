@@ -96,7 +96,7 @@
     
         // توليد رقم حساب عشوائي مكون من 10 أرقام
         const account_number = Math.floor(1000000000 + Math.random() * 9000000000);
-        const account_type = "saving";
+        const account_type = "savings";
     
         db.query(
             'INSERT INTO account (user_id, account_number, account_type) VALUES (?, ?, ?)',
