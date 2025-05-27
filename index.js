@@ -6,6 +6,7 @@
     import express from 'express';
     import mysql from 'mysql2';
     import cors from 'cors';
+    import nodemailer from 'nodemailer';
 
     const app = express();
     app.use(cors()); 
@@ -213,19 +214,24 @@
       });
 
 
-    app.post('/transfers', (req, res) => {
-        const { from_user_id, to_user_id, amount, description } = req.body;
+      app.post('/transfers', (req, res) => {
+        const { from_email, to_email, amount } = req.body;
+        const now = new Date().toLocaleString();
     
-        if (!from_user_id || !to_user_id || !amount || amount <= 0)
+        if (!from_email || !to_email || !amount || amount <= 0)
             return res.status(400).json({ msg: "Invalid input" });
     
-        db.query('SELECT balance FROM users WHERE id = ?', [from_user_id], (err, fromUserResult) => {
+        // جلب بيانات المرسل: balance و id و email
+        db.query('SELECT id, balance, email FROM users WHERE email = ?', [from_email], (err, fromUserResult) => {
             if (err) return res.status(500).json({ error: err });
             if (fromUserResult.length === 0) return res.status(404).json({ msg: "Sender not found" });
+    
+            const from_user_id = fromUserResult[0].id;
     
             if (fromUserResult[0].balance < amount)
                 return res.status(400).json({ msg: "Insufficient balance" });
     
+            // جلب نوع الحساب للمرسل
             db.query('SELECT account_type FROM account WHERE user_id = ?', [from_user_id], (err, fromAccountResult) => {
                 if (err) return res.status(500).json({ error: err });
                 if (fromAccountResult.length === 0) return res.status(404).json({ msg: "Sender account not found" });
@@ -234,38 +240,76 @@
                     return res.status(400).json({ msg: "Sender account type not allowed for transfer" });
                 }
     
-                db.query('SELECT account_type FROM account WHERE user_id = ?', [to_user_id], (err, toAccountResult) => {
+                // جلب بيانات المستقبل (id، balance، email)
+                db.query('SELECT id, balance, email FROM users WHERE email = ?', [to_email], (err, toUserResult) => {
                     if (err) return res.status(500).json({ error: err });
-                    if (toAccountResult.length === 0) return res.status(404).json({ msg: "Receiver account not found" });
+                    if (toUserResult.length === 0) return res.status(404).json({ msg: "Receiver not found" });
     
-                    if (toAccountResult[0].account_type !== 'checking') {
-                        return res.status(400).json({ msg: "Receiver account type not allowed for transfer" });
-                    }
+                    const to_user_id = toUserResult[0].id;
     
-                    // خصم الرصيد من المرسل
-                    db.query('UPDATE users SET balance = balance - ? WHERE id = ?', [amount, from_user_id], (err) => {
+                    // جلب نوع الحساب للمستقبل
+                    db.query('SELECT account_type FROM account WHERE user_id = ?', [to_user_id], (err, toAccountResult) => {
                         if (err) return res.status(500).json({ error: err });
+                        if (toAccountResult.length === 0) return res.status(404).json({ msg: "Receiver account not found" });
     
-                        // إضافة الرصيد للمستلم
-                        db.query('UPDATE users SET balance = balance + ? WHERE id = ?', [amount, to_user_id], (err) => {
+                        if (toAccountResult[0].account_type !== 'checking') {
+                            return res.status(400).json({ msg: "Receiver account type not allowed for transfer" });
+                        }
+    
+                        // خصم المبلغ من المرسل
+                        db.query('UPDATE users SET balance = balance - ? WHERE id = ?', [amount, from_user_id], (err) => {
                             if (err) return res.status(500).json({ error: err });
     
-                            // تسجيل المعاملة
-                            db.query(
-                                'INSERT INTO transactions (from_user_id, to_user_id, amount, status, description) VALUES (?, ?, ?, ?, ?)',
-                                [from_user_id, to_user_id, amount, 'Complete', description || 'Transfer completed'],
-                                (err) => {
-                                    if (err) return res.status(500).json({ error: err });
+                            // إضافة المبلغ للمستقبل
+                            db.query('UPDATE users SET balance = balance + ? WHERE id = ?', [amount, to_user_id], (err) => {
+                                if (err) return res.status(500).json({ error: err });
     
-                                    res.json({ msg: "Transfer successful" });
-                                }
-                            );
+                                // إرسال إيميلات تأكيد المعاملة
+                                sendEmail(
+                                    from_email,
+                                    "💸 Transaction Sent Successfully",
+                                    `<div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5;">
+                                        <h2 style="color: #2c3e50;">✅ Transaction Confirmation</h2>
+                                        <p>Dear Customer,</p>
+                                        <p>You have successfully <strong>sent</strong> <span style="color: green;"><strong>$${amount}</strong></span>.</p>
+                                        <p>Date and Time: <strong>${now}</strong></p>
+                                        <hr style="margin: 20px 0;" />
+                                        <p style="font-size: 14px; color: #888;">Thank you for using our banking service.</p>
+                                        <p style="font-size: 12px; color: #aaa;">Bank App Team</p>
+                                    </div>`
+                                );
+    
+                                sendEmail(
+                                    to_email,
+                                    "💸 You Have Received a Transaction",
+                                    `<div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5;">
+                                        <h2 style="color: #2c3e50;">✅ Transaction Received</h2>
+                                        <p>Dear Customer,</p>
+                                        <p>You have successfully <strong>received</strong> <span style="color: green;"><strong>$${amount}</strong></span> from <strong>${from_email}</strong>.</p>
+                                        <p>Date and Time: <strong>${now}</strong></p>
+                                        <hr style="margin: 20px 0;" />
+                                        <p style="font-size: 14px; color: #888;">Thank you for using our banking service.</p>
+                                        <p style="font-size: 12px; color: #aaa;">Bank App Team</p>
+                                    </div>`
+                                );
+    
+                                // تسجيل المعاملة في جدول transactions
+                                db.query(
+                                    'INSERT INTO transactions (from_user_id, to_user_id, amount) VALUES (?, ?, ?)',
+                                    [from_user_id, to_user_id, amount],
+                                    (err) => {
+                                        if (err) return res.status(500).json({ error: err });
+                                        res.json({ msg: "Transfer successful" });
+                                    }
+                                );
+                            });
                         });
                     });
                 });
             });
         });
     });
+    
     
 
 
@@ -323,3 +367,24 @@
       
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+    const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: 'gannaahmed572@gmail.com',
+            pass: 'qmek ltnz yadq fzvs'
+        }
+        });
+    
+     const sendEmail = (to, subject, html) => {
+        transporter.sendMail({
+            from: '"Bank App" <gannaahmed572@gmail.com>',
+            to: to,
+            subject: subject,
+            html: html
+        }, (err, info) => {
+            if (err) console.error(err);
+            else console.log("Email sent:", info.response);
+        });
+    };
+    
