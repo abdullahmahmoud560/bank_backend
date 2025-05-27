@@ -70,6 +70,14 @@
     });
 
 
+    app.get('/users', (req, res) => {
+        db.query('SELECT id, full_name, email, balance FROM users WHERE role = "customer"', (err, results) => {
+            if (err) return res.status(500).json({ error: err });
+            res.json(results);
+        });
+    });
+        
+
     app.post('/accounts', (req, res) => {
     const { user_id, account_number, account_type } = req.body;
     if (!user_id || !account_number || !account_type)
@@ -165,58 +173,59 @@
 
 
     app.post('/transfers', (req, res) => {
-    const { from_user_id, to_user_id, amount } = req.body;
-    if (!from_user_id || !to_user_id || !amount || amount <= 0)
-        return res.status(400).json({ msg: "Invalid input" });
-
-
-    db.query('SELECT balance FROM users WHERE id = ?', [from_user_id], (err, fromUserResult) => {
-        if (err) return res.status(500).json({ error: err });
-        if (fromUserResult.length === 0) return res.status(404).json({ msg: "Sender not found" });
-
-        if (fromUserResult[0].balance < amount)
-        return res.status(400).json({ msg: "Insufficient balance" });
-
-        db.query('SELECT account_type FROM account WHERE user_id = ?', [from_user_id], (err, fromAccountResult) => {
-        if (err) return res.status(500).json({ error: err });
-        if (fromAccountResult.length === 0) return res.status(404).json({ msg: "Sender account not found" });
-
-
-        if (fromAccountResult[0].account_type !== 'checking') {
-            return res.status(400).json({ msg: "Sender account type not allowed for transfer" });
-        }
-
-
-        db.query('SELECT account_type FROM account WHERE user_id = ?', [to_user_id], (err, toAccountResult) => {
+        const { from_user_id, to_user_id, amount, description } = req.body;
+    
+        if (!from_user_id || !to_user_id || !amount || amount <= 0)
+            return res.status(400).json({ msg: "Invalid input" });
+    
+        db.query('SELECT balance FROM users WHERE id = ?', [from_user_id], (err, fromUserResult) => {
             if (err) return res.status(500).json({ error: err });
-            if (toAccountResult.length === 0) return res.status(404).json({ msg: "Receiver account not found" });
-
-
-            if (toAccountResult[0].account_type !== 'checking') {
-            return res.status(400).json({ msg: "Receiver account type not allowed for transfer" });
-            }
-
-
-            db.query('UPDATE users SET balance = balance - ? WHERE id = ?', [amount, from_user_id], (err) => {
-            if (err) return res.status(500).json({ error: err });
-
-            db.query('UPDATE users SET balance = balance + ? WHERE id = ?', [amount, to_user_id], (err) => {
+            if (fromUserResult.length === 0) return res.status(404).json({ msg: "Sender not found" });
+    
+            if (fromUserResult[0].balance < amount)
+                return res.status(400).json({ msg: "Insufficient balance" });
+    
+            db.query('SELECT account_type FROM account WHERE user_id = ?', [from_user_id], (err, fromAccountResult) => {
                 if (err) return res.status(500).json({ error: err });
-
-                db.query(
-                'INSERT INTO transactions (from_user_id, to_user_id, amount) VALUES (?, ?, ?)',
-                [from_user_id, to_user_id, amount],
-                (err) => {
-                    if (err) return res.status(500).json({ error: err });
-                    res.json({ msg: "Transfer successful" });
+                if (fromAccountResult.length === 0) return res.status(404).json({ msg: "Sender account not found" });
+    
+                if (fromAccountResult[0].account_type !== 'checking') {
+                    return res.status(400).json({ msg: "Sender account type not allowed for transfer" });
                 }
-                );
-            });
+    
+                db.query('SELECT account_type FROM account WHERE user_id = ?', [to_user_id], (err, toAccountResult) => {
+                    if (err) return res.status(500).json({ error: err });
+                    if (toAccountResult.length === 0) return res.status(404).json({ msg: "Receiver account not found" });
+    
+                    if (toAccountResult[0].account_type !== 'checking') {
+                        return res.status(400).json({ msg: "Receiver account type not allowed for transfer" });
+                    }
+    
+                    // خصم الرصيد من المرسل
+                    db.query('UPDATE users SET balance = balance - ? WHERE id = ?', [amount, from_user_id], (err) => {
+                        if (err) return res.status(500).json({ error: err });
+    
+                        // إضافة الرصيد للمستلم
+                        db.query('UPDATE users SET balance = balance + ? WHERE id = ?', [amount, to_user_id], (err) => {
+                            if (err) return res.status(500).json({ error: err });
+    
+                            // تسجيل المعاملة
+                            db.query(
+                                'INSERT INTO transactions (from_user_id, to_user_id, amount, status, description) VALUES (?, ?, ?, ?, ?)',
+                                [from_user_id, to_user_id, amount, 'Complete', description || 'Transfer completed'],
+                                (err) => {
+                                    if (err) return res.status(500).json({ error: err });
+    
+                                    res.json({ msg: "Transfer successful" });
+                                }
+                            );
+                        });
+                    });
+                });
             });
         });
-        });
     });
-    });
+    
 
 
 
