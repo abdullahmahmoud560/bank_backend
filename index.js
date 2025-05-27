@@ -73,19 +73,24 @@
     app.get('/users', (req, res) => {
         const sql = `
           SELECT 
-            u.id, u.full_name, u.email, u.balance,
-            CASE WHEN a.user_id IS NOT NULL THEN true ELSE false END AS has_account
+            u.id, 
+            u.full_name, 
+            u.email, 
+            u.balance,
+            CASE WHEN a.user_id IS NOT NULL THEN true ELSE false END AS has_account,
+            a.status,
+            a.account_type
           FROM users u
           LEFT JOIN account a ON u.id = a.user_id
           WHERE u.role = "customer"
           GROUP BY u.id
         `;
-      
+    
         db.query(sql, (err, results) => {
-          if (err) return res.status(500).json({ error: err });
-          res.json(results);
+            if (err) return res.status(500).json({ error: err });
+            res.json(results);
         });
-      });
+    });    
       
 
       app.post('/accounts', (req, res) => {
