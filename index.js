@@ -295,7 +295,7 @@
     
                                 // تسجيل المعاملة في جدول transactions
                                 db.query(
-                                    'INSERT INTO transactions (from_user_id, to_user_id, amount) VALUES (?, ?, ?)',
+                                    'INSERT INTO transactions (from_user_id, to_user_id, amount,status) VALUES (?, ?, ?,`Complete`)',
                                     [from_user_id, to_user_id, amount],
                                     (err) => {
                                         if (err) return res.status(500).json({ error: err });
