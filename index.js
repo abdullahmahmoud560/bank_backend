@@ -155,7 +155,7 @@
     });
 
 
-    app.put('/accounts/:id/freeze', (req, res) => {
+    app.post('/accounts/:id/freeze', (req, res) => {
     const accountId = req.params.id;
     const freezeDays = parseInt(req.body.days);
 
@@ -180,7 +180,7 @@
 
 
 
-    app.put('/accounts/:id/unfreeze', (req, res) => {
+    app.post('/accounts/:id/unfreeze', (req, res) => {
     const accountId = req.params.id;
     db.query(
         'UPDATE account SET status = "active", freeze_until = NULL WHERE account_id = ?',
