@@ -122,7 +122,7 @@
 
     app.get('/accounts/:id', (req, res) => {
     const accountId = req.params.id;
-    db.query('SELECT * FROM account WHERE account_id = ?', [accountId], (err, results) => {
+    db.query('SELECT * FROM account WHERE user_id = ?', [accountId], (err, results) => {
         if (err) return res.status(500).json({ error: err });
         if (results.length === 0) return res.status(404).json({ msg: "Account not found" });
         res.json(results[0]);
