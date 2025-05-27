@@ -388,7 +388,7 @@
             from: '"Bank App" <gannaahmed572@gmail.com>',
             to: to,
             subject: subject,
-            text: html
+            html: html
         }, (err, info) => {
             if (err) console.error(err);
             else console.log("Email sent:", info.response);
