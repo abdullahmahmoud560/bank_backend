@@ -88,24 +88,30 @@
       });
       
 
-    app.post('/accounts', (req, res) => {
-    const { user_id, account_number, account_type } = req.body;
-    if (!user_id || !account_number || !account_type)
-        return res.status(400).json({ msg: "All fields required" });
-
-    db.query(
-        'INSERT INTO account (user_id, account_number, account_type) VALUES (?, ?, ?)',
-        [user_id, account_number, account_type],
-        (err) => {
-        if (err) {
-            if (err.code === 'ER_DUP_ENTRY')
-            return res.status(400).json({ msg: "Account number already exists" });
-            return res.status(500).json({ error: err });
-        }
-        res.status(201).json({ msg: "Account created successfully" });
-        }
-    );
+      app.post('/accounts', (req, res) => {
+        const { user_id } = req.body;
+    
+        if (!user_id)
+            return res.status(400).json({ msg: "User ID is required" });
+    
+        // توليد رقم حساب عشوائي مكون من 10 أرقام
+        const account_number = Math.floor(1000000000 + Math.random() * 9000000000);
+        const account_type = "saving";
+    
+        db.query(
+            'INSERT INTO account (user_id, account_number, account_type) VALUES (?, ?, ?)',
+            [user_id, account_number, account_type],
+            (err) => {
+                if (err) {
+                    if (err.code === 'ER_DUP_ENTRY')
+                        return res.status(400).json({ msg: "Account number already exists" });
+                    return res.status(500).json({ error: err });
+                }
+                res.status(201).json({ msg: "Account created successfully", account_number });
+            }
+        );
     });
+    
 
 
     app.get('/accounts/:id', (req, res) => {
