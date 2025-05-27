@@ -194,6 +194,25 @@
     });
 
 
+    app.post('/accounts/:id', (req, res) => {
+        const user_id = req.params.id;
+      
+        // نستخدم استعلام لحذف الحساب بالمعرف
+        const sql = 'DELETE FROM account WHERE user_id = ?';
+      
+        db.query(sql, [user_id], (err, results) => {
+          if (err) {
+            console.error(err);
+            return res.status(500).json({ message: 'Internal server error' });
+          }
+          if (results.affectedRows === 0) {
+            return res.status(404).json({ message: 'Account not found' });
+          }
+          res.json({ message: 'Account deleted successfully' });
+        });
+      });
+
+
     app.post('/transfers', (req, res) => {
         const { from_user_id, to_user_id, amount, description } = req.body;
     
