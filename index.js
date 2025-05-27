@@ -295,7 +295,7 @@
     
                                 // تسجيل المعاملة في جدول transactions
                                 db.query(
-                                    'INSERT INTO transactions (from_user_id, to_user_id, amount,status) VALUES (?, ?, ?,`Complete`)',
+                                    'INSERT INTO transactions (from_user_id, to_user_id, amount) VALUES (?, ?, ?)',
                                     [from_user_id, to_user_id, amount],
                                     (err) => {
                                         if (err) return res.status(500).json({ error: err });
@@ -314,27 +314,34 @@
 
 
 
-    app.get('/transactions/:userId', (req, res) => {
-    const userId = req.params.userId;
-    const { type } = req.query;
-
-    let sql = 'SELECT * FROM transactions WHERE from_user_id = ? OR to_user_id = ?';
-    let params = [userId, userId];
-
-    if (type === 'sent') {
-        sql = 'SELECT * FROM transactions WHERE from_user_id = ?';
-        params = [userId];
-    } else if (type === 'received') {
-        sql = 'SELECT * FROM transactions WHERE to_user_id = ?';
-        params = [userId];
-    }
-
-    db.query(sql, params, (err, results) => {
-        if (err) return res.status(500).json({ error: err });
-        res.json(results);
+    app.get('/transactions', (req, res) => {
+        const { type } = req.query;
+    
+        let sql = `
+            SELECT 
+                t.*, 
+                sender.full_name AS sender_name, 
+                receiver.full_name AS receiver_name 
+            FROM transactions t
+            JOIN users sender ON t.from_user_id = sender.id
+            JOIN users receiver ON t.to_user_id = receiver.id
+            WHERE 1=1
+        `;
+    
+        let params = [];
+    
+        if (type === 'sent') {
+            sql += ' AND t.from_user_id IS NOT NULL';
+        } else if (type === 'received') {
+            sql += ' AND t.to_user_id IS NOT NULL';
+        }
+    
+        db.query(sql, params, (err, results) => {
+            if (err) return res.status(500).json({ error: err });
+            res.json(results);
+        });
     });
-    });
-
+    
 
     app.get('/users/:userId/accounts', (req, res) => {
     const userId = req.params.userId;
