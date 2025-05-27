@@ -156,7 +156,7 @@
 
 
     app.post('/accounts/:id/freeze', (req, res) => {
-    const accountId = req.params.id;
+    const user_id = req.params.id;
     const freezeDays = parseInt(req.body.days);
 
     if (!freezeDays || freezeDays <= 0) {
@@ -167,8 +167,8 @@
     freezeUntil.setDate(freezeUntil.getDate() + freezeDays);
 
     db.query(
-        'UPDATE account SET status = "frozen", freeze_until = ? WHERE account_id = ?',
-        [freezeUntil, accountId],
+        'UPDATE account SET status = "frozen", freeze_until = ? WHERE user_id = ?',
+        [freezeUntil, user_id],
         (err, results) => {
         if (err) return res.status(500).json({ error: err });
         if (results.affectedRows === 0) return res.status(404).json({ msg: "Account not found" });
