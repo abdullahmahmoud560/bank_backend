@@ -146,8 +146,8 @@
 
 
     app.put('/accounts/:id/deactivate', (req, res) => {
-    const accountId = req.params.id;
-    db.query('UPDATE account SET status = "deactivated" WHERE account_id = ?', [accountId], (err, results) => {
+    const user_id = req.params.id;
+    db.query('UPDATE account SET status = "deactivated" WHERE user_id = ?', [user_id], (err, results) => {
         if (err) return res.status(500).json({ error: err });
         if (results.affectedRows === 0) return res.status(404).json({ msg: "Account not found" });
         res.json({ msg: "Account deactivated" });
