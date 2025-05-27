@@ -181,10 +181,10 @@
 
 
     app.post('/accounts/:id/unfreeze', (req, res) => {
-    const accountId = req.params.id;
+    const user_id = req.params.id;
     db.query(
-        'UPDATE account SET status = "active", freeze_until = NULL WHERE account_id = ?',
-        [accountId],
+        'UPDATE account SET status = "active", freeze_until = NULL WHERE user_id = ?',
+        [user_id],
         (err, results) => {
         if (err) return res.status(500).json({ error: err });
         if (results.affectedRows === 0) return res.status(404).json({ msg: "Account not found" });
